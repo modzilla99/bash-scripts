@@ -1,0 +1,2 @@
+# This runs efi-sync after invoking dpkg/apt-get #
+DPkg::Post-Invoke {"/usr/local/bin/efi-sync";};
