@@ -1,0 +1,127 @@
+#!/usr/local/bin/bash
+
+API_KEY=
+DOMAINS=( "mydomain.com" "myotherdomain.com" )
+
+TempDir=/tmp
+TempFile=${TempDir}/domainids.csv
+TempIPFile=${TempDir}/ips.csv
+
+[[ -e $TempFile ]] && {
+    rm -rf $TempFile || echo "Error, insufficient permissions to delete tmp file"
+    touch $TempFile || echo "Error, insufficient permissions to create tmp file"
+} || {
+    touch $TempFile || echo "Error, insufficient permissions to create tmp file"
+} 
+
+
+for i in $( ifconfig pppoe1 | grep "inet" | cut -d " " -f2 | grep -v '%pppoe1' | tail -n2 );do
+        Count=${i//[^:]}
+
+        case ${#Count} in
+            7 )
+                IPv6=$i
+            ;;
+            0 )
+                IPv4=$i
+            ;;
+            * )
+                echo "Error"
+            ;;
+        esac
+done
+
+[[ -e $TempIPFile ]] && {
+    [[ "$(grep "IPv4" ${TempIPFile} | cut -d"," -f2)" == "${IPv4}" && "$(grep "IPv6" ${TempIPFile} | cut -d"," -f2)" == "${IPv6}" ]] && {
+        echo "IP addresses don't need to be updated, exiting now..."
+        exit 0
+    }
+
+    rm -rf $TempIPFile || echo "Error, insufficient permissions to delete tmp file"
+    touch $TempIPFile || echo "Error, insufficient permissions to create tmp file"
+
+    printf "IPv4,${IPv4}\nIPv6,${IPv6}\n" >> $TempIPFile
+} || {
+    touch $TempIPFile || echo "Error, insufficient permissions to create tmp file"
+    printf "IPv4,${IPv4}\nIPv6,${IPv6}\n" >> $TempIPFile
+}
+
+
+ZONES=$(curl -s -H "Auth-API-Token: ${API_KEY}" "https://dns.hetzner.com/api/v1/zones")
+
+[[ $ZONES == '{"message":"Invalid authentication credentials"}' ]] && {
+    echo "Wrong credentials provided"
+    echo "Exiting now..."
+    exit 1
+}
+
+DomainsAvailable=($(echo $ZONES | jq ".zones[]?.name" | sed 's/\"//g'))
+IDAvailable=($(echo $ZONES | jq ".zones[]?.id" | sed 's/\"//g'))
+
+
+
+echo "Domains available:"
+Count=0
+while [ $Count -ne ${#DomainsAvailable[@]} ]; do
+    echo "${DomainsAvailable[$Count]},${IDAvailable[$Count]}" | tee -a $TempFile
+    Count=$(( $Count + 1 ))
+done
+
+echo "Your IPv4 is $IPv4 and your IPv6 is $IPv6"
+
+Count=0
+while [ $Count -ne ${#DOMAINS[@]} ]; do
+    Dots=${DOMAINS[$Count]}
+    Dots=${Dots//[^.]}
+
+    case ${#Dots} in
+        0 )
+            echo "Invalid Domain: ${DOMAINS[$Count]}"
+        ;;
+        1 )
+            echo "Updating root domain: ${DOMAINS[$Count]}"
+            ID=$(grep ${DOMAINS[$Count]} $TempFile | cut -d"," -f2)
+
+            [ -z $ID ] && {
+                echo "Updating domain ${DOMAINS[$Count]} failed"
+                exit 1
+            }
+            
+            RecordID=$( curl -s "https://dns.hetzner.com/api/v1/records?zone_id=$ID" \
+                        -H "Auth-API-Token: ${API_KEY}" \
+                        | jq '.records[] | select(.name == "@" and .type == "A") | .id' | sed 's/\"//g' )
+
+            curl -s -X "PUT" "https://dns.hetzner.com/api/v1/records/${RecordID}" \
+                -H 'Content-Type: application/json' \
+                -H "Auth-API-Token: ${API_KEY}" \
+                -d $"{
+                        \"value\": \"$IPv4\",
+                        \"ttl\": 86400,
+                        \"type\": \"A\",
+                        \"name\": \"@\",
+                        \"zone_id\": \"$ID\"
+                    }"
+
+            RecordID=$( curl -s "https://dns.hetzner.com/api/v1/records?zone_id=$ID" \
+                        -H "Auth-API-Token: ${API_KEY}" \
+                        | jq '.records[] | select(.name == "@" and .type == "AAAA") | .id' | sed 's/\"//g' )
+            
+            curl -s -X "PUT" "https://dns.hetzner.com/api/v1/records/${RecordID}" \
+                -H 'Content-Type: application/json' \
+                -H "Auth-API-Token: ${API_KEY}" \
+                -d $"{
+                        \"value\": \"$IPv6\",
+                        \"ttl\": 86400,
+                        \"type\": \"AAAA\",
+                        \"name\": \"@\",
+                        \"zone_id\": \"$ID\"
+                    }"
+            printf "\n"
+        ;;
+
+        3 )
+            printf "Updating subdomain: w.i.p.\n\n"
+        ;;
+    esac
+    Count=$(( $Count + 1 ))
+done
