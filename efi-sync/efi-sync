@@ -1,0 +1,33 @@
+#!/bin/bash
+
+LOG="/var/log/efi-sync.log"
+
+echo "Updating EFI-Partion on second drive ..."
+
+[[ -z $( mount | grep /boot/efi ) ]] && {
+    echo "Error EFI partition isn't mounted!"
+    exit 1
+}
+
+[[ -z $( mount | grep /srv/efi-2 ) ]] && {
+    echo "Error second EFI partition isn't mounted!"
+    echo "Second EFI partition might be in a bad state"
+    exit 0
+}
+
+[[ -e $LOG ]] && {
+	tail -n 40 $LOG | tee $LOG > /dev/null
+} || {
+	touch $LOG
+}
+
+printf "\n$( date )\n" >> $LOG
+rsync -v -rlDog /boot/efi/* /srv/efi-2/ >> /var/log/efi-sync.log || {
+    echo "Error copying files to second EFI"
+    exit 1
+}
+printf "Successful.\n\n" >> $LOG
+
+
+echo "Mirrored EFI successfully"
+exit 0
