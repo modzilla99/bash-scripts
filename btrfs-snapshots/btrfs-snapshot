@@ -1,0 +1,72 @@
+#!/bin/bash
+
+MountPoint="/srv/btrfs-storage-pool"
+SnapshotDir="${MountPoint}/Snapshots"
+LogDir=/var/log/btrfs-snapshots.log
+Retention=7
+
+Snapshot="${SnapshotDir}/$( date +"%Y%m%d-%k%M" | sed "s/\ /0/g" )"
+[[ -e $Snapshot ]] && {
+        echo "Snapshot exists, exiting..."
+        exit
+} || {
+        mkdir $Snapshot
+}
+
+[[ -e $LogDir ]] && {
+	tail -n 400 $LogDir | tee $LogDir > /dev/null
+} || {
+	touch $LogDir
+}
+
+echo "##########${Snapshot}##########" >> $LogDir
+Count=0
+for i in $( ls $SnapshotDir ); do
+    Count=$(( $Count + 1 ))
+done
+
+[[ $Count -le $Retention ]] || {
+        echo "Found more than $Retention Snapshots, removing old ones:"
+        for i in $( ls $SnapshotDir | sort | head -n$(( $Count - $Retention )) ); do
+                printf "Removing Snapshot $i..."
+
+                for f in $( btrfs subvolume list $MountPoint | grep $i | rev | cut -d" " -f1 | rev ); do
+                        btrfs subvolume delete ${MountPoint}/${f} &>> $LogDir
+                        [[ $? -eq 0 ]] || {
+                                echo "Error"
+                                echo "Aborting..."
+                                echo "##########Error##########" >> $LogDir
+                                exit 1
+                        }
+                done
+                
+                rm -rf ${SnapshotDir}/${i} &>> $LogDir
+                [[ $? -eq 0 ]] || {
+                        echo "Error"
+                        echo "Aborting..."
+                        echo "##########Error##########" >> $LogDir
+                        exit 1
+                }
+                echo "Done"
+        done 
+}
+
+Subvols=( $( btrfs subvolume list $MountPoint | grep -v $( echo $SnapshotDir | rev | cut -d"/" -f1 | rev ) | rev | cut -d" " -f1 | rev ) )
+
+for i in ${!Subvols[@]}; do
+        i=${Subvols[$i]}
+        printf "Creating Snapshot of Subvolume $i..."
+        Source="${MountPoint}/${i}"
+        Destination="${Snapshot}/$( echo ${i} | rev | cut -d "/" -f1 | rev )"
+        #mkdir $Destination
+        btrfs subvolume snapshot -r $Source $Destination &>> $LogDir
+        [[ $? -eq 0 ]] || {
+                echo "Error"
+                echo "Aborting..."
+                echo "##########Error##########" >> $LogDir
+                exit 1
+        }
+        echo "Done"
+done
+
+echo "###############################Done################################" >> $LogDir
