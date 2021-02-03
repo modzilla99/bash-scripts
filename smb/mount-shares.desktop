@@ -1,0 +1,8 @@
+[Desktop Entry]
+Version=1.0
+Terminal=false
+Type=Application
+Name=Mount Shares
+Exec=/usr/local/bin/mount-Shares.sh
+Icon=folder-remote
+StartupWMClass=smb-mount
