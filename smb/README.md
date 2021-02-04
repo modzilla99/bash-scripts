@@ -5,3 +5,5 @@ This small script automatically mounts SMB/CIFS-Shares. To use it headlessly you
 ## Run the script automatically
 
 You can also add the script to run at login by adding it via `gnome-session-properties`. Just klick add give it a name and point it to the script, done.
+
+Alternatively copying the `mount-shares.desktop` file or hardlinking it from .local/share/applications does work as well.
