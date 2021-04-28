@@ -1,0 +1,30 @@
+#cloud-config
+users:
+  - default
+  - name: secretansibleuser
+    ssh-authorized-keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAA...
+    sudo: ALL=(ALL) NOPASSWD:ALL
+  - name: ubuntu
+    ssh-authorized-keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAA...
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: sudo
+    shell: /bin/bash
+  - name: my-legacy-adm
+    passwd: '$6$sw.hjof8qBQ5FviJ$BFHjICPSLRNCD8Xq5nwjcSgowwMpa8eQP71c25lVAOI9HZb8cUhGtM53LpKUODe1xP0KJiyw.FVJzLo/JQ0O3/'
+    lock_passwd: false
+    chpasswd: { expire: False }
+    groups: sudo
+    shell: /bin/bash
+ssh_pwauth: true
+package_upgrade: true
+packages:
+  - jq
+  - nfs-common
+  - ca-certificates
+  - software-properties-common
+  - curl
+  - apt-transport-https
+runcmd:
+  - systemctl enable --now iscsid
