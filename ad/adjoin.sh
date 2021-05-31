@@ -76,7 +76,7 @@ function join_ad {
             printf ",DC=${i}"
         done
     )
-    echo "Please specify the Organizational Unit in which the computer will be put in (eg. OU=Linux,OU=Server,OU=Devices,OU=VOPLAB.loc,DC=voplab,DC=loc) [Default: ${COU}]:"
+    echo "Please specify the Organizational Unit in which the computer will be put in (eg. OU=Linux,OU=Server,OU=Devices,OU=my.ad,DC=my,DC=ad) [Default: ${COU}]:"
     read ANS
 
     [[ ! -z "$ANS" ]] && {
@@ -141,7 +141,7 @@ function enable_sudo {
         mv -f $SUDO /root/$(basename $SUDO .conf)
     }
 
-    printf "# Authenticated Active diretory groups that have access to sudo\n# eg. %%VOP-LAB-LinuxUpdater@voplab.loc     ALL=(ALL) NOPASSWD:/usr/bin/apt update, /usr/bin/apt upgrade\n\n" > $SUDO
+    printf "# Authenticated Active diretory groups that have access to sudo\n# eg. %%myad-linuxupdater@voplab.loc     ALL=(ALL) NOPASSWD:/usr/bin/apt update, /usr/bin/apt upgrade\n\n" > $SUDO
 
     PERMIT=""
     START=0
