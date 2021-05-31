@@ -23,7 +23,7 @@ function elevate {
 }
 
 function silent_apt {
-    DEBIAN_FRONTEND=noninteractive apt -y $@ &>/dev/null || {
+    DEBIAN_FRONTEND=noninteractive apt -qq -y $@ &>/dev/null || {
         printf "Error\n"
         echo "Error while installing deps."
         exit 1
