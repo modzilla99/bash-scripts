@@ -161,7 +161,7 @@ function enable_sudo {
 function auth_info {
     #to invalidate sssd cache and update group assoc
 
-    sss_cache -u "jlamp-adm@my.ad"
+    sss_cache -u "modzilla99@my.ad"
 
     # to invalidate complete sssd cache
     sss_cache -E
