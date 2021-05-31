@@ -141,7 +141,7 @@ function enable_sudo {
         mv -f $SUDO /root/$(basename $SUDO .conf)
     }
 
-    printf "# Authenticated Active diretory groups that have access to sudo\n# eg. %%myad-linuxupdater@voplab.loc     ALL=(ALL) NOPASSWD:/usr/bin/apt update, /usr/bin/apt upgrade\n\n" > $SUDO
+    printf "# Authenticated Active diretory groups that have access to sudo\n# eg. %%my-ad-linuxupdater@voplab.loc     ALL=(ALL) NOPASSWD:/usr/bin/apt update, /usr/bin/apt upgrade\n\n" > $SUDO
 
     PERMIT=""
     START=0
@@ -161,7 +161,7 @@ function enable_sudo {
 function auth_info {
     #to invalidate sssd cache and update group assoc
 
-    sss_cache -u "jlamp-adm@voplab.loc"
+    sss_cache -u "jlamp-adm@my.ad"
 
     # to invalidate complete sssd cache
     sss_cache -E
