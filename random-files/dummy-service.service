@@ -1,0 +1,9 @@
+[Unit]
+Description=Dummy
+#After=network.target
+[Service]
+Type=forking
+ExecStart=/bin/sh -c "sleep 1000000 &"
+StandardOutput=journal
+[Install]
+WantedBy=multi-user.target
